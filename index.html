@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-slate-950 text-slate-100 selection:bg-indigo-500 selection:text-white">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moon Robot Detectives - Interactive Space Adventure</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Canvas Confetti -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        fredoka: ['Fredoka', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                    },
+                    colors: {
+                        lunar: {
+                            100: '#f1f5f9',
+                            200: '#e2e8f0',
+                            800: '#1e293b',
+                            900: '#0f172a',
+                            glow: '#38bdf8'
+                        }
+                    },
+                    animation: {
+                        'float': 'float 4s ease-in-out infinite',
+                        'pulse-glow': 'pulseGlow 2s infinite',
+                        'bounce-subtle': 'bounceSubtle 2s infinite',
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px) rotate(0deg)' },
+                            '50%': { transform: 'translateY(-12px) rotate(2deg)' },
+                        },
+                        pulseGlow: {
+                            '0%, 100%': { filter: 'drop-shadow(0 0 15px rgba(56, 189, 248, 0.8))' },
+                            '50%': { filter: 'drop-shadow(0 0 25px rgba(236, 72, 153, 0.9))' }
+                        },
+                        bounceSubtle: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Outfit', sans-serif;
+            user-select: none;
+            overflow-x: hidden;
+        }
+        h1, h2, h3, .font-heading {
+            font-family: 'Fredoka', sans-serif;
+        }
+        /* Glassmorphism effects */
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+        }
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #090d16;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+    </style>
+</head>
+<body class="h-full relative text-slate-100 flex flex-col justify-between">
+
+    <!-- CANVAS BACKGROUND (Interactive Stars & Moon Surface) -->
+    <canvas id="space-bg" class="fixed inset-0 pointer-events-none z-0"></canvas>
+
+    <!-- HEADER / NAVIGATION -->
+    <header class="relative z-20 w-full glass-panel border-b border-slate-800 px-4 py-3 sticky top-0">
+        <div class="max-w-6xl mx-auto flex items-center justify-between">
+            <!-- Logo -->
+            <div class="flex items-center gap-3 cursor-pointer" onclick="switchTab('home')">
+                <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center text-2xl shadow-lg shadow-cyan-500/30">
+                    🚀
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-wide bg-gradient-to-r from-cyan-400 via-sky-200 to-indigo-300 bg-clip-text text-transparent">
+                        MOON ROBOT DETECTIVES
+                    </h1>
+                    <p class="text-xs text-cyan-400 font-semibold tracking-wider uppercase">Lunar Archaeology Academy</p>
+                </div>
+            </div>
+
+            <!-- Navigation Links -->
+            <nav class="hidden md:flex items-center gap-2 bg-slate-900/80 p-1.5 rounded-2xl border border-slate-800">
+                <button id="nav-home" onclick="switchTab('home')" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 bg-indigo-600 text-white shadow-md">
+                    <i data-lucide="map">="</i> Moon Missions
+                </button>
+                <button id="nav-arcade" onclick="switchTab('arcade')" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="gamepad-2"></i> Quiz Arcade
+                </button>
+                <button id="nav-robotpedia" onclick="switchTab('robotpedia')" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="book-open"></i> Robotpedia
+                </button>
+                <button id="nav-invite" onclick="switchTab('invite')" class="nav-btn px-4 py-2 rounded-xl text-sm font-semibold transition-all flex items-center gap-2 text-slate-400 hover:text-white hover:bg-slate-800">
+                    <i data-lucide="users"></i> Invite Cadets
+                </button>
+            </nav>
+
+            <!-- Cadet Stats Pill -->
+            <div class="flex items-center gap-3">
+                <div class="bg-slate-900/90 border border-amber-500/30 px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-inner">
+                    <span class="text-amber-400 text-lg">⭐</span>
+                    <div>
+                        <div class="text-[10px] text-slate-400 uppercase font-bold leading-none">Cadet Points</div>
+                        <div id="user-points" class="text-sm font-bold text-amber-300 font-heading">0 XP</div>
+                    </div>
+                </div>
+
+                <button id="sound-toggle" onclick="toggleAudio()" class="w-10 h-10 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-300 hover:text-white hover:border-cyan-500 transition-all">
+                    <i data-lucide="volume-2" id="sound-icon"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobile Nav Bar (Bottom) -->
+        <div class="md:hidden flex justify-around mt-2 pt-2 border-t border-slate-800/60 text-xs">
+            <button onclick="switchTab('home')" class="flex flex-col items-center gap-1 text-cyan-400">
+                <i data-lucide="map" class="w-4 h-4"></i> Missions
+            </button>
+            <button onclick="switchTab('arcade')" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="gamepad-2" class="w-4 h-4"></i> Quiz
+            </button>
+            <button onclick="switchTab('robotpedia')" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="book-open" class="w-4 h-4"></i> Glossary
+            </button>
+            <button onclick="switchTab('invite')" class="flex flex-col items-center gap-1 text-slate-400">
+                <i data-lucide="users" class="w-4 h-4"></i> Invite
+            </button>
+        </div>
+    </header>
+
+    <!-- MAIN CONTENT CONTAINER -->
+    <main class="relative z-10 max-w-6xl mx-auto w-full px-4 py-6 flex-grow flex flex-col">
+
+        <!-- ================= TAB 1: STORY MISSIONS / MOON MAP ================= -->
+        <section id="tab-home" class="tab-content block space-y-6">
+            <!-- Welcome Banner -->
+            <div class="glass-panel p-6 rounded-3xl relative overflow-hidden border border-cyan-500/30 shadow-2xl">
+                <div class="absolute -right-10 -bottom-10 w-64 h-64 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                <div class="relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                    <div class="space-y-2 text-center md:text-left">
+                        <span class="inline-block px-3 py-1 rounded-full text-xs font-bold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">
+                            🔍 MISSION OBJECTIVE: LUNAR RECOVERY
+                        </span>
+                        <h2 class="text-2xl md:text-4xl font-bold font-heading text-white">
+                            Did you know robots are sleeping on the Moon right now? 🤖🌕
+                        </h2>
+                        <p class="text-slate-300 text-sm md:text-base max-w-2xl">
+                            Human astronauts came home, but they left behind amazing high-tech robots! Tap a lunar site below to inspect the robots, learn why NASA sent them, and discover how they are <strong class="text-cyan-300">STILL helping scientists today!</strong>
+                        </p>
+                    </div>
+                    <!-- Cadet Badge Mini Preview -->
+                    <div class="bg-slate-900/80 border border-indigo-500/30 p-4 rounded-2xl flex flex-col items-center min-w-[160px]">
+                        <div class="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-400 to-amber-600 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/20 mb-2 animate-bounce-subtle">
+                            🏅
+                        </div>
+                        <span class="text-xs font-bold text-slate-300">Rank: Cadet Explorer</span>
+                        <span id="unlocked-count" class="text-xs text-cyan-400 mt-1">0 / 5 Robots Discovered</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Interactive Moon Map Grid -->
+            <div>
+                <h3 class="text-xl font-bold font-heading mb-4 flex items-center gap-2 text-indigo-300">
+                    <i data-lucide="compass" class="text-cyan-400"></i> Select a Lunar Landing Zone:
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5" id="robot-cards-container">
+                    <!-- Cards dynamically populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: KNOWLEDGE ARCADE & QUIZ ================= -->
+        <section id="tab-arcade" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 rounded-3xl border border-indigo-500/30 shadow-xl">
+                <div class="flex flex-col md:flex-row items-center justify-between gap-4">
+                    <div>
+                        <h2 class="text-3xl font-bold font-heading text-indigo-200">Lunar Knowledge Arcade 🎮</h2>
+                        <p class="text-slate-300 text-sm">Test what you learned about Moon robots and earn official Space Badges!</p>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="resetQuiz()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset Quiz
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quiz Container -->
+            <div id="quiz-box" class="glass-panel p-6 md:p-8 rounded-3xl border border-slate-700 space-y-6 relative overflow-hidden">
+                <!-- Progress Header -->
+                <div class="flex justify-between items-center text-sm font-semibold border-b border-slate-800 pb-4">
+                    <span id="quiz-step" class="text-cyan-400">Question 1 of 5</span>
+                    <span id="quiz-score-display" class="text-amber-400 font-heading">Score: 0 XP</span>
+                </div>
+
+                <!-- Question Title -->
+                <div id="quiz-question-container" class="space-y-4">
+                    <h3 id="quiz-question-text" class="text-xl md:text-2xl font-bold text-white font-heading">
+                        Loading questions...
+                    </h3>
+                    
+                    <!-- Options Grid -->
+                    <div id="quiz-options" class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                        <!-- Options generated dynamically -->
+                    </div>
+                </div>
+
+                <!-- Feedback Banner -->
+                <div id="quiz-feedback" class="hidden p-4 rounded-2xl border transition-all flex items-start gap-3">
+                    <div id="feedback-icon" class="text-2xl"></div>
+                    <div>
+                        <h4 id="feedback-title" class="font-bold text-base font-heading"></h4>
+                        <p id="feedback-desc" class="text-sm text-slate-200 mt-1"></p>
+                    </div>
+                </div>
+
+                <!-- Next Button -->
+                <div class="flex justify-end pt-4">
+                    <button id="quiz-next-btn" onclick="nextQuestion()" class="hidden px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-indigo-600 font-bold text-white shadow-lg shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                        Next Challenge <i data-lucide="arrow-right"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Earned Badges Gallery -->
+            <div class="glass-panel p-6 rounded-3xl border border-slate-800">
+                <h3 class="text-xl font-bold font-heading text-amber-300 mb-4 flex items-center gap-2">
+                    <i data-lucide="award"></i> Your Earned Lunar Badges
+                </h3>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4" id="badges-grid">
+                    <!-- Badges populated by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: ROBOTPEDIA (GLOSSARY) ================= -->
+        <section id="tab-robotpedia" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-6 rounded-3xl border border-cyan-500/30">
+                <h2 class="text-3xl font-bold font-heading text-cyan-200">Space Robotpedia 📚</h2>
+                <p class="text-slate-300 text-sm mt-1">Tricky space terms translated into super easy kid concepts!</p>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="glossary-container">
+                <!-- Dynamic Glossary Cards -->
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: INVITE FRIENDS ================= -->
+        <section id="tab-invite" class="tab-content hidden space-y-6">
+            <div class="glass-panel p-8 rounded-3xl border border-indigo-500/40 text-center max-w-2xl mx-auto space-y-6">
+                <div class="w-20 h-20 bg-indigo-600/30 border border-indigo-400/40 rounded-full flex items-center justify-center text-4xl mx-auto shadow-xl">
+                    🚀
+                </div>
+                
+                <div class="space-y-2">
+                    <h2 class="text-3xl font-bold font-heading text-white">Challenge Your Cadet Squad!</h2>
+                    <p class="text-slate-300 text-sm">
+                        Think your friends know more about Moon rovers than you? Send them a cadet challenge pass and see who ranks highest!
+                    </p>
+                </div>
+
+                <!-- Custom Cadet Badge Card -->
+                <div class="bg-slate-900 border border-slate-700 p-6 rounded-2xl text-left space-y-4 shadow-inner">
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <span class="text-xs font-bold text-cyan-400 uppercase tracking-wider">OFFICIAL MOON DETECTIVE PASS</span>
+                        <span class="text-xs bg-emerald-500/20 text-emerald-300 px-2 py-0.5 rounded-full border border-emerald-500/30">ACTIVE CADET</span>
+                    </div>
+
+                    <div class="flex items-center gap-4">
+                        <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-400 to-indigo-600 flex items-center justify-center text-2xl font-bold text-white shadow-lg">
+                            🧑‍🚀
+                        </div>
+                        <div>
+                            <div class="text-lg font-bold font-heading text-white" id="cadet-card-name">Cadet Star-Explorer</div>
+                            <div class="text-xs text-slate-400">Score: <span id="cadet-card-score" class="text-amber-400 font-bold">0 XP</span></div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950 p-3 rounded-xl flex items-center justify-between border border-slate-800">
+                        <code id="share-link-text" class="text-xs text-cyan-300 truncate max-w-[240px]">
+                            https://moondetectives.space/join?cadet=StarExplorer&xp=0
+                        </code>
+                        <button onclick="copyChallengeLink()" class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copy Pass
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Direct Action Buttons -->
+                <div class="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button onclick="copyChallengeLink()" class="px-6 py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 font-bold text-white shadow-lg shadow-cyan-500/20 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2">
+                        <i data-lucide="share-2"></i> Copy Invitation Link
+                    </button>
+                </div>
+
+                <!-- Toast Notice -->
+                <div id="toast-msg" class="opacity-0 transition-opacity duration-300 text-emerald-400 text-sm font-semibold">
+                    ✨ Invitation Pass copied to clipboard!
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- MODAL FOR STORY CHAPTER DETAILED EXPLORATION -->
+    <div id="story-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden transition-all">
+        <div class="glass-panel w-full max-w-3xl max-h-[90vh] rounded-3xl border border-cyan-500/40 shadow-2xl flex flex-col overflow-hidden">
+            <!-- Modal Header -->
+            <div class="p-5 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+                <div class="flex items-center gap-3">
+                    <span id="modal-robot-icon" class="text-3xl">🤖</span>
+                    <div>
+                        <h3 id="modal-robot-name" class="text-xl font-bold font-heading text-white">Lunar Rover</h3>
+                        <p id="modal-robot-site" class="text-xs text-cyan-400">Mare Imbrium Landing Site</p>
+                    </div>
+                </div>
+                <button onclick="closeStoryModal()" class="w-8 h-8 rounded-full bg-slate-800 text-slate-400 hover:text-white flex items-center justify-center transition-all">
+                    ✕
+                </button>
+            </div>
+
+            <!-- Modal Content (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-grow">
+                
+                <!-- Interactive Robot Stage / Graphic -->
+                <div class="w-full h-48 sm:h-56 rounded-2xl bg-slate-950 border border-slate-800 relative overflow-hidden flex items-center justify-center group">
+                    <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent z-10"></div>
+                    
+                    <!-- Decorative Moon Ground -->
+                    <div class="absolute bottom-0 inset-x-0 h-16 bg-slate-900 border-t border-slate-800 rounded-b-2xl"></div>
+
+                    <!-- Glowing interactive hotspots -->
+                    <div id="hotspot-container" class="relative z-20 flex flex-col items-center justify-center text-center p-4">
+                        <div id="modal-robot-avatar" class="text-6xl sm:text-7xl animate-float cursor-pointer transform hover:scale-110 transition-transform">
+                            🚜
+                        </div>
+                        <p class="text-xs text-cyan-300 mt-2 bg-slate-900/90 px-3 py-1 rounded-full border border-cyan-500/30">
+                            💡 Tap the robot components below to inspect its mission secrets!
+                        </p>
+                    </div>
+                </div>
+
+                <!-- 3 Key Knowledge Tabs for Kids -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Q1: What is it? -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-cyan-400 text-xs font-bold uppercase tracking-wider">
+                            <i data-lucide="bot" class="w-4 h-4"></i> 1. What was it?
+                        </div>
+                        <p id="modal-what" class="text-xs text-slate-200 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Q2: Why sent? -->
+                    <div class="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl space-y-2">
+                        <div class="flex items-center gap-2 text-amber-400 text-xs font-bold uppercase tracking-wider">
+                            <i data-lucide="target" class="w-4 h-4"></i> 2. Why was it sent?
+                        </div>
+                        <p id="modal-why" class="text-xs text-slate-200 leading-relaxed">...</p>
+                    </div>
+
+                    <!-- Q3: Still useful today? -->
+                    <div class="bg-slate-900/80 border border-indigo-500/30 p-4 rounded-2xl space-y-2 bg-indigo-950/20">
+                        <div class="flex items-center gap-2 text-emerald-400 text-xs font-bold uppercase tracking-wider">
+                            <i data-lucide="sparkles" class="w-4 h-4"></i> 3. Still useful today?
+                        </div>
+                        <p id="modal-useful" class="text-xs text-slate-200 leading-relaxed">...</p>
+                    </div>
+                </div>
+
+                <!-- Kid Friendly Fun Fact -->
+                <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                    <span class="text-2xl">💡</span>
+                    <div>
+                        <h4 class="text-sm font-bold text-amber-300 font-heading">Super Detective Moon Fact!</h4>
+                        <p id="modal-fact" class="text-xs text-amber-100/90 mt-0.5">...</p>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer / Action -->
+            <div class="p-4 border-t border-slate-800 bg-slate-900/80 flex items-center justify-between">
+                <span class="text-xs text-slate-400">Reward for reading: <strong class="text-amber-400">+50 XP</strong></span>
+                <button id="claim-xp-btn" onclick="claimStoryXP()" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2">
+                    <i data-lucide="check-circle-2" class="w-4 h-4"></i> Mark Analyzed & Collect XP!
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <footer class="relative z-10 border-t border-slate-800/80 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
+        <p>Moon Robot Detectives • Empowering Young Space Scientists & NASA Explorers of Tomorrow 🚀</p>
+    </footer>
+
+    <!-- JAVASCRIPT GAME LOGIC -->
+    <script>
+        /* ================= GAME DATA & KNOWLEDGE SYSTEM ================= */
+        const MOON_ROBOTS = [
+            {
+                id: 'lrv-15',
+                name: 'Apollo 15 Lunar Roving Vehicle (LRV)',
+                nickname: 'The Original Moon Dune Buggy',
+                icon: '🏎️',
+                site: 'Hadley Rille (Apollo 15 Site)',
+                year: '1971',
+                agency: 'NASA (USA)',
+                status: 'Parked permanently on the Moon',
+                what: 'An electric car built for 2 astronauts in bulky space suits to drive across dusty lunar craters!',
+                why: 'Astronauts could only walk a short distance in heavy suits. The LRV let them explore miles away to collect rocks from deep craters.',
+                useful: 'YES! Its laser retroreflector mirror is STILL used today by Earth observatories to shoot laser beams at the Moon and calculate Earth-Moon distance down to millimeters!',
+                fact: 'It is still parked up there with its antenna pointing toward Earth, holding the lunar speed record of 11.2 mph (18 km/h)!',
+                xpEarned: false
+            },
+            {
+                id: 'surveyor-3',
+                name: 'Surveyor 3 Probe',
+                nickname: 'The Soil Testing Robot',
+                icon: '🛰️',
+                site: 'Ocean of Storms (Oceanus Procellarum)',
+                year: '1967',
+                agency: 'NASA (USA)',
+                status: 'Visited later by Apollo 12 astronauts!',
+                what: 'A robotic lander equipped with a motorized scoop arm and camera to test the Moon surface.',
+                why: 'Before humans landed, scientists feared the Moon might be covered in quicksand-like dust! Surveyor proved the ground was solid enough for humans to land.',
+                useful: 'YES! Apollo 12 astronauts retrieved its camera 2.5 years later. NASA studied how space radiation and freeze-thaw temperatures affected its parts over time to design better modern space suits.',
+                fact: 'It was the first time humans visited a robot that had been sitting alone on another world!',
+                xpEarned: false
+            },
+            {
+                id: 'lunokhod-1',
+                name: 'Lunokhod 1',
+                nickname: 'The Tub-Shaped Moon Tank',
+                icon: '🚜',
+                site: 'Sea of Rains (Mare Imbrium)',
+                year: '1970',
+                agency: 'Soviet Space Program',
+                status: 'Stationary on lunar plain',
+                what: 'The world\'s first remote-controlled robotic rover to roll across another celestial body! Looks like a bathtub on 8 wheels.',
+                why: 'Sent to analyze lunar soil, measure cosmic radiation, and send over 20,000 photos back to Earth controllers.',
+                useful: 'YES! In 2010, scientists bounced a laser beam off Lunokhod 1’s reflector mirror after 40 years of being "lost"—it answered back loud and clear!',
+                fact: 'It was powered by solar panels stored inside its flip-top lid that closed at night to keep it warm!',
+                xpEarned: false
+            },
+            {
+                id: 'change-4',
+                name: 'Yutu-2 (Chang\'e 4 Rover)',
+                nickname: 'The Far-Side Explorer',
+                icon: '🤖',
+                site: 'Von Kármán Crater (Far Side of Moon)',
+                year: '2019',
+                agency: 'CNSA (China)',
+                status: 'ACTIVE & exploring right now!',
+                what: 'A solar-powered 6-wheeled robot exploring the mysterious "Far Side" (back side) of the Moon.',
+                why: 'To peer deep beneath the Moon’s crust using ground-penetrating radar and see what materials are buried underground.',
+                useful: 'ABSOLUTELY! It is actively operating today, sending data about ancient asteroid impacts that shaped our solar system billions of years ago.',
+                fact: 'Because the far side never faces Earth, it uses a special satellite named "Queqiao" floating in space to pass messages home!',
+                xpEarned: false
+            },
+            {
+                id: 'slim-lander',
+                name: 'SLIM & LEV-2 (SORA-Q)',
+                nickname: 'The Transformer Moon-Ball',
+                icon: '🏀',
+                site: 'Shioli Crater',
+                year: '2024',
+                agency: 'JAXA (Japan)',
+                status: 'Landed on the Moon in 2024!',
+                what: 'A ultra-precise pin-point lander carrying LEV-2—a tiny robot that shape-shifts from a ball into a two-wheeled rover!',
+                why: 'To test how spacecraft can land with extreme precision (within 100 meters of a target) instead of miles away.',
+                useful: 'YES! Modern space programs use its landing data to plan future base camps near lunar ice pockets at the Moon\'s South Pole.',
+                fact: 'LEV-2 was co-designed by a toy company! It transforms like a real Transformer toy on the lunar sand!',
+                xpEarned: false
+            }
+        ];
+
+        const QUIZ_QUESTIONS = [
+            {
+                question: "Why do scientists shoot lasers at retroreflector mirrors left on the Moon by Apollo rovers?",
+                options: [
+                    "To melt Moon rocks for fun",
+                    "To measure the exact distance between Earth and Moon",
+                    "To charge the rovers' batteries",
+                    "To send signals to aliens"
+                ],
+                correct: 1,
+                explanation: "Correct! Lasers bounce off reflectors left by rovers like Apollo 15 and Lunokhod 1, measuring Earth-Moon distance down to millimeters!"
+            },
+            {
+                question: "Before humans landed on the Moon, why was Surveyor 3 sent ahead?",
+                options: [
+                    "To search for lunar alien cities",
+                    "To build a space hotel",
+                    "To test if lunar dust was solid enough to land on",
+                    "To deliver food to astronauts"
+                ],
+                correct: 2,
+                explanation: "Spot on! Scientists weren't sure if spacecraft would sink in dust, so Surveyor 3 scooped the soil first to prove it was safe!"
+            },
+            {
+                question: "Why did NASA study the camera brought back from Surveyor 3 years after it sat on the Moon?",
+                options: [
+                    "To check what photos were inside",
+                    "To see how harsh space radiation and temperatures affect materials",
+                    "To sell it in an antique shop",
+                    "To reuse its batteries"
+                ],
+                correct: 1,
+                explanation: "Awesome! Studying vintage robots left on the Moon helps scientists build tougher spaceships and suits for future Mars missions!"
+            },
+            {
+                question: "How does the Yutu-2 rover talk to Earth from the mysterious 'Far Side' of the Moon?",
+                options: [
+                    "Using a really long cable",
+                    "Using smoke signals in space",
+                    "Using a relay satellite floating nearby to bounce radio signals",
+                    "It doesn't talk to Earth at all"
+                ],
+                correct: 2,
+                explanation: "Great job! Because the far side faces away from Earth, it uses the Queqiao relay satellite to pass messages!"
+            },
+            {
+                question: "What makes Japanese LEV-2 (SORA-Q) robot so unique?",
+                options: [
+                    "It can fly like a jetliner",
+                    "It transforms from a ball into a rolling mini-rover",
+                    "It is made of pure gold",
+                    "It is as big as a house"
+                ],
+                correct: 1,
+                explanation: "Bingo! LEV-2 was designed with toy engineers to transform on lunar soil and photograph the SLIM lander!"
+            }
+        ];
+
+        const GLOSSARY_ITEMS = [
+            {
+                term: "Retroreflector",
+                analogy: "Like a super bike reflector!",
+                desc: "A special mirror device that bounces light straight back to where it came from. Used to bounce lasers from Earth back to space observatories!"
+            },
+            {
+                term: "Far Side of the Moon",
+                analogy: "The Moon's hidden back coat",
+                desc: "The side of the Moon that always faces away from Earth due to tidal locking. It is rugged, cratered, and extra mysterious!"
+            },
+            {
+                term: "Lunar Regolith",
+                analogy: "Crushed glass-dust sand",
+                desc: "The fine powder and broken rock covering the Moon. It was made over billions of years by tiny space meteorites smashing into rocks."
+            },
+            {
+                term: "Laser Ranging",
+                analogy: "Cosmic Radar Stopwatch",
+                desc: "Firing a beam of laser light, timing how long it takes to bounce off the Moon and come back to measure distances with insane accuracy!"
+            },
+            {
+                term: "Autonomous Rover",
+                analogy: "A smart robo-explorer",
+                desc: "A vehicle on wheels that can drive and make decisions on another planet without a human driver sitting inside it!"
+            }
+        ];
+
+        const BADGES = [
+            { id: 'badge-explorer', title: 'Moon Archaeologist', icon: '🕵️‍♂️', desc: 'Analyzed 3 Lunar Robots' },
+            { id: 'badge-laser', title: 'Laser Master', icon: '🔦', desc: 'Learned about Retroreflectors' },
+            { id: 'badge-quiz', title: 'Quiz Commander', icon: '🏆', desc: 'Scored 100+ Quiz XP' },
+            { id: 'badge-squad', title: 'Squad Leader', icon: '🛰️', desc: 'Invited friends to join mission' }
+        ];
+
+        /* ================= GAME STATE ================= */
+        let gameState = {
+            xp: 0,
+            activeTab: 'home',
+            unlockedRobots: new Set(),
+            currentQuizIndex: 0,
+            quizScore: 0,
+            audioEnabled: true,
+            currentSelectedRobot: null
+        };
+
+        /* ================= AUDIO SYNTHESIZER (Web Audio API) ================= */
+        let audioCtx = null;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playSound(type) {
+            if (!gameState.audioEnabled) return;
+            try {
+                initAudio();
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'click') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(400, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'success') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(523.25, now); // C5
+                    osc.frequency.setValueAtTime(659.25, now + 0.1); // E5
+                    osc.frequency.setValueAtTime(783.99, now + 0.2); // G5
+                    gain.gain.setValueAtTime(0.2, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.35);
+                    osc.start(now);
+                    osc.stop(now + 0.35);
+                } else if (type === 'badge') {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(300, now);
+                    osc.frequency.exponentialRampToValueAtTime(900, now + 0.25);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.01, now + 0.3);
+                    osc.start(now);
+                    osc.stop(now + 0.3);
+                }
+            } catch (e) {
+                console.log("Audio play error", e);
+            }
+        }
+
+        function toggleAudio() {
+            gameState.audioEnabled = !gameState.audioEnabled;
+            const icon = document.getElementById('sound-icon');
+            if (gameState.audioEnabled) {
+                icon.setAttribute('data-lucide', 'volume-2');
+                playSound('click');
+            } else {
+                icon.setAttribute('data-lucide', 'volume-x');
+            }
+            lucide.createIcons();
+        }
+
+        /* ================= UI NAVIGATION & INITIALIZATION ================= */
+        window.addEventListener('DOMContentLoaded', () => {
+            initSpaceBackground();
+            renderRobotCards();
+            renderGlossary();
+            renderBadges();
+            initQuiz();
+            lucide.createIcons();
+        });
+
+        function switchTab(tabId) {
+            playSound('click');
+            gameState.activeTab = tabId;
+
+            // Update content visibility
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Update tab button active state
+            document.querySelectorAll('.nav-btn').forEach(btn => {
+                btn.classList.remove('bg-indigo-600', 'text-white', 'shadow-md');
+                btn.classList.add('text-slate-400');
+            });
+
+            const activeBtn = document.getElementById(`nav-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('bg-indigo-600', 'text-white', 'shadow-md');
+                activeBtn.classList.remove('text-slate-400');
+            }
+        }
+
+        function addXP(amount) {
+            gameState.xp += amount;
+            document.getElementById('user-points').innerText = `${gameState.xp} XP`;
+            document.getElementById('cadet-card-score').innerText = `${gameState.xp} XP`;
+            
+            // Check badge unlocks
+            renderBadges();
+        }
+
+        /* ================= RENDER ROBOT CARDS (STORY MODE) ================= */
+        function renderRobotCards() {
+            const container = document.getElementById('robot-cards-container');
+            container.innerHTML = '';
+
+            MOON_ROBOTS.forEach(robot => {
+                const card = document.createElement('div');
+                card.className = `glass-card p-5 rounded-3xl border transition-all duration-300 hover:scale-[1.02] cursor-pointer flex flex-col justify-between ${
+                    robot.xpEarned ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-800 hover:border-cyan-500/50'
+                }`;
+
+                card.onclick = () => openStoryModal(robot.id);
+
+                card.innerHTML = `
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-3xl p-3 bg-slate-900 rounded-2xl border border-slate-800 shadow-inner">${robot.icon}</span>
+                            <span class="text-[11px] font-bold px-2.5 py-1 rounded-full ${robot.xpEarned ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30' : 'bg-slate-800 text-cyan-300'}">
+                                ${robot.xpEarned ? '✓ Analyzed (+50 XP)' : '🔍 Inspect Site'}
+                            </span>
+                        </div>
+                        <div>
+                            <h4 class="text-lg font-bold font-heading text-white line-clamp-1">${robot.name}</h4>
+                            <p class="text-xs font-semibold text-cyan-400">${robot.nickname}</p>
+                        </div>
+                        <div class="text-xs text-slate-400 space-y-1">
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="map-pin" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span class="truncate">${robot.site}</span>
+                            </div>
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="calendar" class="w-3.5 h-3.5 text-slate-500"></i>
+                                <span>Landed: ${robot.year} (${robot.agency})</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                        <span class="text-slate-400 font-medium">Still Useful Today?</span>
+                        <span class="font-bold text-emerald-400 flex items-center gap-1">
+                            YES! <i data-lucide="arrow-right" class="w-3.5 h-3.5"></i>
+                        </span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+            lucide.createIcons();
+        }
+
+        /* ================= STORY MODAL SYSTEM ================= */
+        function openStoryModal(robotId) {
+            playSound('click');
+            const robot = MOON_ROBOTS.find(r => r.id === robotId);
+            if (!robot) return;
+
+            gameState.currentSelectedRobot = robot;
+
+            document.getElementById('modal-robot-icon').innerText = robot.icon;
+            document.getElementById('modal-robot-avatar').innerText = robot.icon;
+            document.getElementById('modal-robot-name').innerText = robot.name;
+            document.getElementById('modal-robot-site').innerText = `📍 ${robot.site} (${robot.year})`;
+            
+            document.getElementById('modal-what').innerText = robot.what;
+            document.getElementById('modal-why').innerText = robot.why;
+            document.getElementById('modal-useful').innerText = robot.useful;
+            document.getElementById('modal-fact').innerText = robot.fact;
+
+            const claimBtn = document.getElementById('claim-xp-btn');
+            if (robot.xpEarned) {
+                claimBtn.innerText = "Already Claimed ✓";
+                claimBtn.disabled = true;
+                claimBtn.className = "px-5 py-2.5 rounded-xl bg-slate-800 text-slate-400 text-xs font-bold cursor-not-allowed";
+            } else {
+                claimBtn.innerText = "Mark Analyzed & Collect XP!";
+                claimBtn.disabled = false;
+                claimBtn.className = "px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 text-white font-bold text-xs shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all flex items-center gap-2";
+            }
+
+            document.getElementById('story-modal').classList.remove('hidden');
+        }
+
+        function closeStoryModal() {
+            playSound('click');
+            document.getElementById('story-modal').classList.add('hidden');
+        }
+
+        function claimStoryXP() {
+            if (!gameState.currentSelectedRobot) return;
+
+            if (!gameState.currentSelectedRobot.xpEarned) {
+                gameState.currentSelectedRobot.xpEarned = true;
+                gameState.unlockedRobots.add(gameState.currentSelectedRobot.id);
+                
+                playSound('success');
+                confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } });
+
+                addXP(50);
+                
+                // Update stats banner
+                document.getElementById('unlocked-count').innerText = `${gameState.unlockedRobots.size} / 5 Robots Discovered`;
+
+                renderRobotCards();
+                closeStoryModal();
+            }
+        }
+
+        /* ================= KNOWLEDGE ARCADE & QUIZ ================= */
+        function initQuiz() {
+            gameState.currentQuizIndex = 0;
+            gameState.quizScore = 0;
+            renderQuizQuestion();
+        }
+
+        function renderQuizQuestion() {
+            const q = QUIZ_QUESTIONS[gameState.currentQuizIndex];
+            document.getElementById('quiz-step').innerText = `Question ${gameState.currentQuizIndex + 1} of ${QUIZ_QUESTIONS.length}`;
+            document.getElementById('quiz-question-text').innerText = q.question;
+
+            const optionsContainer = document.getElementById('quiz-options');
+            optionsContainer.innerHTML = '';
+
+            document.getElementById('quiz-feedback').classList.add('hidden');
+            document.getElementById('quiz-next-btn').classList.add('hidden');
+
+            q.options.forEach((opt, idx) => {
+                const btn = document.createElement('button');
+                btn.className = "quiz-opt-btn w-full p-4 rounded-2xl bg-slate-900 border border-slate-800 hover:border-indigo-500/50 hover:bg-slate-800 text-left text-sm font-semibold text-slate-200 transition-all flex items-center justify-between";
+                btn.innerHTML = `
+                    <span>${opt}</span>
+                    <span class="w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-xs text-slate-400 font-bold">${String.fromCharCode(65 + idx)}</span>
+                `;
+                btn.onclick = () => checkQuizAnswer(idx, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkQuizAnswer(selectedIdx, btnElement) {
+            const q = QUIZ_QUESTIONS[gameState.currentQuizIndex];
+            const allBtns = document.querySelectorAll('.quiz-opt-btn');
+            allBtns.forEach(b => b.disabled = true);
+
+            const feedback = document.getElementById('quiz-feedback');
+            const feedbackIcon = document.getElementById('feedback-icon');
+            const feedbackTitle = document.getElementById('feedback-title');
+            const feedbackDesc = document.getElementById('feedback-desc');
+
+            feedback.classList.remove('hidden');
+
+            if (selectedIdx === q.correct) {
+                playSound('success');
+                btnElement.classList.add('bg-emerald-950/40', 'border-emerald-500', 'text-emerald-200');
+                
+                feedback.className = "p-4 rounded-2xl border bg-emerald-950/40 border-emerald-500/40 flex items-start gap-3 mt-4";
+                feedbackIcon.innerText = "🎉";
+                feedbackTitle.innerText = "Spot on Space Cadet!";
+                feedbackTitle.className = "font-bold text-base font-heading text-emerald-300";
+                feedbackDesc.innerText = q.explanation;
+
+                gameState.quizScore += 25;
+                addXP(25);
+                document.getElementById('quiz-score-display').innerText = `Score: ${gameState.quizScore} XP`;
+            } else {
+                playSound('click');
+                btnElement.classList.add('bg-rose-950/40', 'border-rose-500', 'text-rose-200');
+                
+                // Highlight correct
+                allBtns[q.correct].classList.add('bg-emerald-950/30', 'border-emerald-500/50');
+
+                feedback.className = "p-4 rounded-2xl border bg-rose-950/40 border-rose-500/40 flex items-start gap-3 mt-4";
+                feedbackIcon.innerText = "💡";
+                feedbackTitle.innerText = "Good try! Here is the clue:";
+                feedbackTitle.className = "font-bold text-base font-heading text-rose-300";
+                feedbackDesc.innerText = q.explanation;
+            }
+
+            document.getElementById('quiz-next-btn').classList.remove('hidden');
+            lucide.createIcons();
+        }
+
+        function nextQuestion() {
+            playSound('click');
+            gameState.currentQuizIndex++;
+            if (gameState.currentQuizIndex < QUIZ_QUESTIONS.length) {
+                renderQuizQuestion();
+            } else {
+                // Quiz Complete
+                confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+                const box = document.getElementById('quiz-box');
+                box.innerHTML = `
+                    <div class="text-center py-8 space-y-4">
+                        <div class="text-6xl animate-bounce">🏆</div>
+                        <h3 class="text-3xl font-bold font-heading text-white">Quiz Completed!</h3>
+                        <p class="text-slate-300 text-sm max-w-md mx-auto">
+                            Fantastic job! You earned a total of <strong class="text-amber-400 font-bold">${gameState.quizScore} XP</strong> in the knowledge arcade.
+                        </p>
+                        <button onclick="resetQuiz()" class="px-6 py-3 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm shadow-lg shadow-indigo-500/20">
+                            Play Again 🔄
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        function resetQuiz() {
+            playSound('click');
+            location.reload(); // Quick reset for arcade state
+        }
+
+        /* ================= ROBOTPEDIA GLOSSARY ================= */
+        function renderGlossary() {
+            const container = document.getElementById('glossary-container');
+            container.innerHTML = '';
+
+            GLOSSARY_ITEMS.forEach(item => {
+                const card = document.createElement('div');
+                card.className = "glass-card p-5 rounded-3xl border border-slate-800 space-y-2 hover:border-cyan-500/40 transition-all";
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-lg font-bold font-heading text-cyan-300">${item.term}</h4>
+                        <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                            ${item.analogy}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-300 leading-relaxed">${item.desc}</p>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        /* ================= BADGES SYSTEM ================= */
+        function renderBadges() {
+            const grid = document.getElementById('badges-grid');
+            grid.innerHTML = '';
+
+            // Unlock conditions
+            const unlockedMap = {
+                'badge-explorer': gameState.unlockedRobots.size >= 3,
+                'badge-laser': gameState.unlockedRobots.has('lrv-15') || gameState.unlockedRobots.has('lunokhod-1'),
+                'badge-quiz': gameState.quizScore >= 50,
+                'badge-squad': true // Always unlocked for trying share
+            };
+
+            BADGES.forEach(badge => {
+                const isUnlocked = unlockedMap[badge.id];
+                const card = document.createElement('div');
+                card.className = `p-4 rounded-2xl border text-center space-y-2 transition-all ${
+                    isUnlocked ? 'bg-slate-900 border-amber-500/40 shadow-lg shadow-amber-500/5' : 'bg-slate-950/50 border-slate-800 opacity-50 grayscale'
+                }`;
+
+                card.innerHTML = `
+                    <div class="text-3xl">${badge.icon}</div>
+                    <div class="text-xs font-bold font-heading text-white">${badge.title}</div>
+                    <div class="text-[10px] text-slate-400">${badge.desc}</div>
+                    <span class="inline-block text-[9px] font-bold px-2 py-0.5 rounded-full ${isUnlocked ? 'bg-amber-500/20 text-amber-300' : 'bg-slate-800 text-slate-500'}">
+                        ${isUnlocked ? 'UNLOCKED ✨' : 'LOCKED 🔒'}
+                    </span>
+                `;
+                grid.appendChild(card);
+            });
+        }
+
+        /* ================= INVITE FRIENDS / SHARE ================= */
+        function copyChallengeLink() {
+            playSound('click');
+            const linkText = document.getElementById('share-link-text').innerText.trim();
+
+            // ExecCommand fallback for iframe safety
+            const textArea = document.createElement("textarea");
+            textArea.value = linkText;
+            document.body.appendChild(textArea);
+            textArea.select();
+            try {
+                document.execCommand('copy');
+                const toast = document.getElementById('toast-msg');
+                toast.classList.remove('opacity-0');
+                setTimeout(() => toast.classList.add('opacity-0'), 2500);
+            } catch (err) {
+                console.log('Copy failed');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        /* ================= DYNAMIC CANVAS BACKGROUND (STARS & MOON DUST) ================= */
+        function initSpaceBackground() {
+            const canvas = document.getElementById('space-bg');
+            const ctx = canvas.getContext('2d');
+
+            let width = canvas.width = window.innerWidth;
+            let height = canvas.height = window.innerHeight;
+
+            window.addEventListener('resize', () => {
+                width = canvas.width = window.innerWidth;
+                height = canvas.height = window.innerHeight;
+                createStars();
+            });
+
+            let stars = [];
+            function createStars() {
+                stars = [];
+                const count = Math.floor((width * height) / 3000);
+                for (let i = 0; i < count; i++) {
+                    stars.push({
+                        x: Math.random() * width,
+                        y: Math.random() * height,
+                        size: Math.random() * 1.8 + 0.2,
+                        alpha: Math.random(),
+                        speed: Math.random() * 0.01 + 0.005
+                    });
+                }
+            }
+
+            createStars();
+
+            function draw() {
+                ctx.clearRect(0, 0, width, height);
+
+                // Deep space gradient
+                const grad = ctx.createLinearGradient(0, 0, 0, height);
+                grad.addColorStop(0, '#040711');
+                grad.addColorStop(0.5, '#090e1a');
+                grad.addColorStop(1, '#02040a');
+                ctx.fillStyle = grad;
+                ctx.fillRect(0, 0, width, height);
+
+                // Stars twinkle
+                ctx.fillStyle = '#ffffff';
+                stars.forEach(star => {
+                    star.alpha += star.speed;
+                    if (star.alpha > 1 || star.alpha < 0) star.speed = -star.speed;
+                    ctx.globalAlpha = Math.abs(star.alpha);
+                    ctx.beginPath();
+                    ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                ctx.globalAlpha = 1.0;
+
+                requestAnimationFrame(draw);
+            }
+
+            draw();
+        }
+    </script>
+</body>
+</html>
